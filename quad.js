@@ -1,6 +1,6 @@
 (function(exports) {
 
-    var QT_NODE_CAPACITY = 1;
+    var QT_NODE_CAPACITY = 5;
     var QT_MAX_LEVELS = 10;
 
     function Bounds(x, y, w, h) {
@@ -11,8 +11,8 @@
 
         this._width = w;
         this._height = h;
-        this._halfWidth = Math.round(this._width / 2);
-        this._halfHeight = Math.round(this._height / 2);
+        this._halfWidth = Math.floor(this._width / 2);
+        this._halfHeight = Math.floor(this._height / 2);
     }
 
     Bounds.prototype.getCenter = function() {
@@ -196,6 +196,16 @@
                     for (var i = _nodes.length - 1; i >= 0; i--) {
                         result = result.concat(_nodes[i].retrieve(node));
                     }
+                }
+            }
+            return result;
+        };
+
+        this.toArray = function() {
+            var result = [{ nodes: _objects, bBox: _bounds }];
+            if (_nodes[0] !== undefined) {
+                for (var i = _nodes.length - 1; i >= 0; i--) {
+                    result = result.concat(_nodes[i].toArray());
                 }
             }
             return result;

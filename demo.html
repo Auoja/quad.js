@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Q-Tree Demo</title>
+    </head>
+    <script src="quad.js"></script>
+    <script>
+        function setup() {
+
+            var canvas = document.getElementById("canvas");
+            canvas.addEventListener("click", click, false);
+
+            var rect = canvas.getBoundingClientRect();
+
+            var ctx = canvas.getContext('2d');
+            ctx.lineWidth = 1;
+
+            var q = Quad.create({
+                x: 0,
+                y: 0,
+                w: canvas.width,
+                h: canvas.height
+            });
+
+            function click(event) {
+                q.insert({x: event.x - rect.left, y: event.y - rect.top, w: 0, h: 0});
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                render();
+            }
+
+            function render() {
+                var bounds = q.toArray();
+
+                bounds.forEach(function(item) {
+                    ctx.fillStyle = "red";
+                    for ( var i = item.nodes.length - 1; i >= 0; i--) {
+                        var node = item.nodes[i];
+                        ctx.fillRect(node.x - 2, node.y - 2, 4, 4);
+                    }
+                    ctx.rect(item.bBox.getLeft(), item.bBox.getTop(), item.bBox.getWidth(), item.bBox.getHeight());
+                    ctx.strokeStyle="#000000";
+                });
+
+                ctx.stroke();
+            }
+        }
+    </script>
+    <body onload="setup()">
+        <canvas id="canvas" width="600" height="600"></canvas>
+    </body>
+</html>
