@@ -8,7 +8,14 @@
         function setup() {
 
             var canvas = document.getElementById("canvas");
-            canvas.addEventListener("click", click, false);
+            canvas.addEventListener("mousedown", mousedown, false);
+
+            var drag = false;
+            var select = false;
+            var startX;
+            var startY;
+            var endX;
+            var endY;
 
             var rect = canvas.getBoundingClientRect();
 
@@ -19,33 +26,90 @@
                 x: 0,
                 y: 0,
                 w: canvas.width,
-                h: canvas.height
+                h: canvas.height,
+                capacity: 1
             });
 
-            function click(event) {
-                q.insert({x: event.x - rect.left, y: event.y - rect.top, w: 0, h: 0});
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                render();
+            function mousedown(event) {
+                canvas.addEventListener("mouseup", mouseup, false);
+                canvas.addEventListener("mousemove", mousemove, false);
+                startX = event.x;
+                startY = event.y;
+                select = false;
+            }
+
+            function mousemove(event) {
+                endX = event.x;
+                endY = event.y;
+                drag = true;
+            }
+
+            function mouseup(event) {
+                endX = event.x;
+                endY = event.y;
+
+                if (drag) {
+                    drag = false;
+                    select = true;
+                } else {
+                    q.insert({x: event.x - rect.left, y: event.y - rect.top, w: 0, h: 0});
+                }
+
+                canvas.removeEventListener("mouseup", mouseup, false);
+                canvas.removeEventListener("mousemove", mousemove, false);
             }
 
             function render() {
-                var bounds = q.toArray();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                bounds.forEach(function(item) {
+                q.toArray().forEach(function(item) {
+                    ctx.beginPath();
                     ctx.fillStyle = "red";
                     for ( var i = item.nodes.length - 1; i >= 0; i--) {
                         var node = item.nodes[i];
                         ctx.fillRect(node.x - 2, node.y - 2, 4, 4);
                     }
-                    ctx.rect(item.bBox.getLeft(), item.bBox.getTop(), item.bBox.getWidth(), item.bBox.getHeight());
-                    ctx.strokeStyle="#000000";
-                });
+                    ctx.closePath();
+                    ctx.stroke();
 
-                ctx.stroke();
+                    ctx.beginPath();
+                    ctx.strokeStyle = "black";
+                    ctx.rect(item.bBox.getLeft(), item.bBox.getTop(), item.bBox.getWidth(), item.bBox.getHeight());
+                    ctx.closePath();
+                    ctx.stroke();
+                });
+                if (drag) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = "green";
+                    ctx.rect(startX, startY, (endX - startX), (endY - startY));
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                if (select) {
+                    q.retrieve({
+                        x: startX,
+                        y: startY,
+                        w: (endX - startX),
+                        h: (endY - startY)
+                    }).forEach(function(item) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = "green";
+                        ctx.arc(item.x, item.y, 5, 0, 2 * Math.PI);
+                        ctx.closePath();
+                        ctx.stroke();
+                    });
+                }
+                ctx.closePath();
             }
+
+            for ( var i = 0; i < 100; i++) {
+                q.insert({x: Math.floor(Math.random() * canvas.width), y: Math.floor(Math.random() * canvas.height), w: 0, h: 0});
+            }
+
+            setInterval(render, 32);
         }
     </script>
     <body onload="setup()">
-        <canvas id="canvas" width="600" height="600"></canvas>
+        <canvas id="canvas" width="512" height="512"></canvas>
     </body>
 </html>
