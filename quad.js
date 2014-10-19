@@ -1,7 +1,7 @@
 (function(exports) {
 
     var QT_NODE_CAPACITY = 5;
-    var QT_MAX_LEVELS = 10;
+    var QT_MAX_LEVEL = 10;
 
     function Bounds(x, y, w, h) {
         this._l = x;
@@ -85,9 +85,12 @@
     function QuadTree(opts) {
 
         var _level = opts.level || 0;
+        var _nodeCapacity = opts.capacity || QT_NODE_CAPACITY;
+        var _maxLevel = opts.maxLevel || QT_MAX_LEVEL;
         var _objects = [];
         var _nodes = [];
         var _bounds = new Bounds(opts.x, opts.y, opts.w, opts.h);
+        var _hasChildren = false;
 
         function _getIndex(node) {
             var index = -1;
@@ -107,11 +110,15 @@
             return index;
         }
 
+        this.getBounds = function() {
+            return _bounds;
+        };
+
         this.insert = function(node) {
             var index;
             var i = 0;
 
-            if (_nodes[0] !== undefined) {
+            if (_hasChildren) {
                 index = _getIndex(node);
                 if (index !== -1) {
                     _nodes[index].insert(node);
@@ -121,8 +128,8 @@
 
             _objects.push(node);
 
-            if (_objects.length > QT_NODE_CAPACITY && _level < QT_MAX_LEVELS) {
-                if (_nodes[0] === undefined) {
+            if (_objects.length > _nodeCapacity && _level < _maxLevel) {
+                if (!_hasChildren) {
                     this.split();
                 }
                 while (i < _objects.length) {
@@ -133,18 +140,18 @@
                         i++;
                     }
                 }
-
             }
+        };
 
+        this.remove = function(node) {
+            // TODO: Add removal
         };
 
         this.clear = function() {
             _objects = [];
-            for (var i = _nodes.length - 1; i >= 0; i--) {
-                if (_nodes[i]) {
-                    _nodes[i].clear();
-                }
-            }
+            _nodes.forEach(function(_node) {
+                _node.clear();
+            });
             _nodes = [];
         };
 
@@ -157,6 +164,8 @@
 
             _nodes[0] = new QuadTree({
                 level: _level + 1,
+                capacity: _nodeCapacity,
+                maxLevel: _maxLevel,
                 x: x,
                 y: y,
                 w: width,
@@ -164,6 +173,8 @@
             });
             _nodes[1] = new QuadTree({
                 level: _level + 1,
+                capacity: _nodeCapacity,
+                maxLevel: _maxLevel,
                 x: x + width,
                 y: y,
                 w: width,
@@ -171,6 +182,8 @@
             });
             _nodes[2] = new QuadTree({
                 level: _level + 1,
+                capacity: _nodeCapacity,
+                maxLevel: _maxLevel,
                 x: x,
                 y: y + height,
                 w: width,
@@ -178,36 +191,44 @@
             });
             _nodes[3] = new QuadTree({
                 level: _level + 1,
+                capacity: _nodeCapacity,
+                maxLevel: _maxLevel,
                 x: x + width,
                 y: y + height,
                 w: width,
                 h: height
             });
 
+            _hasChildren = true;
         };
 
+
         this.retrieve = function(node) {
-            var index = _getIndex(node);
             var result = _objects;
-            if (_nodes[0] !== undefined) {
+
+            if (_hasChildren) {
+                var index = _getIndex(node);
+
                 if (index !== -1) {
-                    result = result.concat(_nodes[0].retrieve(node));
+                    result = result.concat(_nodes[index].retrieve(node));
                 } else {
-                    for (var i = _nodes.length - 1; i >= 0; i--) {
-                        result = result.concat(_nodes[i].retrieve(node));
-                    }
+                    // TODO: This needs to be improved for large search areas
+                    _nodes.forEach(function(_node) {
+                        result = result.concat(_node.retrieve(node));
+                    });
                 }
             }
             return result;
         };
 
         this.toArray = function() {
-            var result = [{ nodes: _objects, bBox: _bounds }];
-            if (_nodes[0] !== undefined) {
-                for (var i = _nodes.length - 1; i >= 0; i--) {
-                    result = result.concat(_nodes[i].toArray());
-                }
-            }
+            var result = [{
+                nodes: _objects,
+                bBox: _bounds
+            }];
+            _nodes.forEach(function(_node) {
+                result = result.concat(_node.toArray());
+            });
             return result;
         };
 
