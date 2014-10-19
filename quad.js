@@ -135,7 +135,7 @@
                 while (i < _objects.length) {
                     index = _getIndex(_objects[i]);
                     if (index !== -1) {
-                        _nodes[index].insert(_objects.splice(i, 1)[0]);
+                        _nodes[index].insert(_objects.shift());
                     } else {
                         i++;
                     }

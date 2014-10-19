@@ -1,7 +1,7 @@
 {
     "name": "Quad.js",
     "version": "0.0.1",
-    "description": "JavaScript Quad tree implementation",
+    "description": "JavaScript Quadtree implementation",
     "main": "quad.js",
     "devDependencies": {
         "mocha": "^1.21.4"
