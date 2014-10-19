@@ -132,14 +132,13 @@
                 if (!_hasChildren) {
                     this.split();
                 }
-                while (i < _objects.length) {
-                    index = _getIndex(_objects[i]);
+                _objects.forEach(function(_object) {
+                    index = _getIndex(_object);
                     if (index !== -1) {
-                        _nodes[index].insert(_objects.shift());
-                    } else {
-                        i++;
+                        _nodes[index].insert(_object);
                     }
-                }
+                });
+                _objects = [];
             }
         };
 
