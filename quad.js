@@ -223,7 +223,8 @@
         this.toArray = function() {
             var result = [{
                 nodes: _objects,
-                bBox: _bounds
+                bBox: _bounds,
+                level: _level
             }];
             _nodes.forEach(function(_node) {
                 result = result.concat(_node.toArray());
