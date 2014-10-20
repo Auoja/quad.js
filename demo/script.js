@@ -39,6 +39,7 @@ function startDemo() {
         endX = event.x - rect.left;
         endY = event.y - rect.top;
         drag = true;
+        render();
     }
 
     function mouseup(event) {
@@ -57,6 +58,7 @@ function startDemo() {
             });
         }
 
+        render();
         canvas.removeEventListener("mouseup", mouseup, false);
         canvas.removeEventListener("mousemove", mousemove, false);
     }
@@ -130,5 +132,5 @@ function startDemo() {
         });
     }
 
-    setInterval(render, 32);
+    render();
 }
