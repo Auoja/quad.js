@@ -1,7 +1,37 @@
 (function(exports) {
 
-    var QT_NODE_CAPACITY = 5;
-    var QT_MAX_LEVEL = 10;
+    var defaultSettings = {
+        x: 0,
+        y: 0,
+        w: 512,
+        h: 512,
+        maxLevel: 10,
+        capacity: 5,
+        level: 0
+    };
+
+    var defaultNode = {
+        x: 0,
+        y: 0,
+        w: 0,
+        h: 0
+    };
+
+    function extend(defaults, options) {
+        var extended = {};
+        var prop;
+        for (prop in defaults) {
+            if (Object.prototype.hasOwnProperty.call(defaults, prop)) {
+                extended[prop] = defaults[prop];
+            }
+        }
+        for (prop in options) {
+            if (Object.prototype.hasOwnProperty.call(options, prop)) {
+                extended[prop] = options[prop];
+            }
+        }
+        return extended;
+    }
 
     function Bounds(x, y, w, h) {
         this._l = x;
@@ -82,79 +112,18 @@
     };
 
 
-    function QuadTree(opts) {
+    function QuadTree(settings) {
 
-        var _level = opts.level || 0;
-        var _nodeCapacity = opts.capacity || QT_NODE_CAPACITY;
-        var _maxLevel = opts.maxLevel || QT_MAX_LEVEL;
+        var _level = settings.level;
+        var _nodeCapacity = settings.capacity;
+        var _maxLevel = settings.maxLevel;
         var _objects = [];
         var _nodes = [];
-        var _bounds = new Bounds(opts.x, opts.y, opts.w, opts.h);
+        var _bounds = new Bounds(settings.x, settings.y, settings.w, settings.h);
         var _hasChildren = false;
 
-        function _getIndex(node) {
-            var index = -1;
 
-            var nodeBounds = new Bounds(node.x, node.y, node.w, node.h);
-
-            if (_bounds.getTopLeft().insideBounds(nodeBounds)) {
-                index = 0;
-            } else if (_bounds.getTopRight().insideBounds(nodeBounds)) {
-                index = 1;
-            } else if (_bounds.getBottomLeft().insideBounds(nodeBounds)) {
-                index = 2;
-            } else if (_bounds.getBottomRight().insideBounds(nodeBounds)) {
-                index = 3;
-            }
-
-            return index;
-        }
-
-        this.getBounds = function() {
-            return _bounds;
-        };
-
-        this.insert = function(node) {
-            var index;
-            var i = 0;
-
-            if (_hasChildren) {
-                index = _getIndex(node);
-                if (index !== -1) {
-                    _nodes[index].insert(node);
-                }
-                return;
-            }
-
-            _objects.push(node);
-
-            if (_objects.length > _nodeCapacity && _level < _maxLevel) {
-                if (!_hasChildren) {
-                    this.split();
-                }
-                _objects.forEach(function(_object) {
-                    index = _getIndex(_object);
-                    if (index !== -1) {
-                        _nodes[index].insert(_object);
-                    }
-                });
-                _objects = [];
-            }
-        };
-
-        this.remove = function(node) {
-            // TODO: Add removal
-        };
-
-        this.clear = function() {
-            _objects = [];
-            _nodes.forEach(function(_node) {
-                _node.clear();
-            });
-            _nodes = [];
-        };
-
-        this.split = function() {
+        function _split() {
 
             var x = _bounds.getLeft();
             var y = _bounds.getTop();
@@ -199,8 +168,76 @@
             });
 
             _hasChildren = true;
+        }
+
+        function _getIndex(node) {
+            var index = -1;
+
+            var nodeBounds = new Bounds(node.x, node.y, node.w, node.h);
+
+            if (_bounds.getTopLeft().insideBounds(nodeBounds)) {
+                index = 0;
+            } else if (_bounds.getTopRight().insideBounds(nodeBounds)) {
+                index = 1;
+            } else if (_bounds.getBottomLeft().insideBounds(nodeBounds)) {
+                index = 2;
+            } else if (_bounds.getBottomRight().insideBounds(nodeBounds)) {
+                index = 3;
+            }
+
+            return index;
+        }
+
+        this._insert = function(node) {
+            var index;
+            var i = 0;
+
+            if (_hasChildren) {
+                index = _getIndex(node);
+                if (index !== -1) {
+                    _nodes[index]._insert(node);
+                }
+                return;
+            }
+
+            _objects.push(node);
+
+            if (_objects.length > _nodeCapacity && _level < _maxLevel) {
+                if (!_hasChildren) {
+                    _split();
+                }
+                _objects.forEach(function(_object) {
+                    index = _getIndex(_object);
+                    if (index !== -1) {
+                        _nodes[index]._insert(_object);
+                    }
+                });
+                _objects = [];
+            }
         };
 
+        this.insert = function(node) {
+            node = extend(defaultNode, node);
+            if (_bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+                this._insert(node);
+            }
+        };
+
+        this.getBounds = function() {
+            return _bounds;
+        };
+
+        this.remove = function(node) {
+            // TODO: Add removal
+        };
+
+        this.clear = function() {
+            _objects = [];
+            _nodes.forEach(function(_node) {
+                _node.clear();
+            });
+            _nodes = [];
+        };
 
         this.retrieve = function(node) {
             var result = _objects;
@@ -234,8 +271,8 @@
 
     }
 
-    exports.create = function(opts) {
-        return new QuadTree(opts);
+    exports.create = function(settings) {
+        return new QuadTree(extend(defaultSettings, settings));
     };
 
 
