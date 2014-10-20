@@ -63,19 +63,29 @@
         return false;
     };
 
+    Bounds.prototype.canBeSplit = function () {
+        if (this._halfWidth < 1 || this._halfHeight < 1) {
+            throw Error("Quads are to small. Try lowering quadtree max level.")
+        }
+    };
+
     Bounds.prototype.getTopLeft = function() {
+        this.canBeSplit();
         return new Bounds(this._l, this._t, this._halfWidth, this._halfHeight);
     };
 
     Bounds.prototype.getTopRight = function() {
+        this.canBeSplit();
         return new Bounds(this._l + this._halfWidth, this._t, this._halfWidth, this._halfHeight);
     };
 
     Bounds.prototype.getBottomLeft = function() {
+        this.canBeSplit();
         return new Bounds(this._l, this._t + this._halfHeight, this._halfWidth, this._halfHeight);
     };
 
     Bounds.prototype.getBottomRight = function() {
+        this.canBeSplit();
         return new Bounds(this._l + this._halfWidth, this._t + this._halfHeight, this._halfWidth, this._halfHeight);
     };
 
