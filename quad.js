@@ -39,6 +39,7 @@
         return extended;
     }
 
+    // Bounds
     function Bounds(x, y, w, h) {
         this._l = x;
         this._t = y;
@@ -111,170 +112,165 @@
     };
 
 
+    // Quad
+    function Quad(settings) {
+        this.level = settings.level;
+        this.nodes = [];
+        this.childQuads = [];
+        this.bounds = new Bounds(settings.x, settings.y, settings.w, settings.h);
+    }
+
+    Quad.prototype.hasChildren = function() {
+        return this.childQuads.length > 0;
+    };
+
+    Quad.prototype.getIndex = function(node) {
+        var index = NO_QUADRANT;
+
+        var nodeBounds = new Bounds(node.x, node.y, node.w, node.h);
+
+        if (this.bounds.getTopLeft().insideBounds(nodeBounds)) {
+            index = TOP_LEFT_QUADRANT;
+        } else if (this.bounds.getTopRight().insideBounds(nodeBounds)) {
+            index = TOP_RIGHT_QUADRANT;
+        } else if (this.bounds.getBottomLeft().insideBounds(nodeBounds)) {
+            index = BOTTOM_LEFT_QUADRANT;
+        } else if (this.bounds.getBottomRight().insideBounds(nodeBounds)) {
+            index = BOTTOM_RIGHT_QUADRANT;
+        }
+
+        return index;
+    };
+
+    Quad.prototype.split = function() {
+        var x = this.bounds.getLeft();
+        var y = this.bounds.getTop();
+        var width = this.bounds.getHalfWidth();
+        var height = this.bounds.getHalfHeight();
+
+        this.childQuads[TOP_LEFT_QUADRANT] = new Quad({
+            level: this.level + 1,
+            x: x,
+            y: y,
+            w: width,
+            h: height
+        });
+        this.childQuads[TOP_RIGHT_QUADRANT] = new Quad({
+            level: this.level + 1,
+            x: x + width,
+            y: y,
+            w: width,
+            h: height
+        });
+        this.childQuads[BOTTOM_LEFT_QUADRANT] = new Quad({
+            level: this.level + 1,
+            x: x,
+            y: y + height,
+            w: width,
+            h: height
+        });
+        this.childQuads[BOTTOM_RIGHT_QUADRANT] = new Quad({
+            level: this.level + 1,
+            x: x + width,
+            y: y + height,
+            w: width,
+            h: height
+        });
+    };
+
     function QuadTree(settings) {
-        var _level = settings.level;
-        var _nodeCapacity = settings.capacity;
+        var _root = new Quad(settings);
+        var _nodeCapacity = settings.capacity; // ?
         var _maxLevel = settings.maxLevel;
-        var _nodes = [];
-        var _childQuads = [];
-        var _bounds = new Bounds(settings.x, settings.y, settings.w, settings.h);
 
-        function _hasChildren() {
-            return _childQuads.length > 0;
-        }
+        // Private
 
-        function _split() {
-            var x = _bounds.getLeft();
-            var y = _bounds.getTop();
-            var width = _bounds.getHalfWidth();
-            var height = _bounds.getHalfHeight();
-
-            _childQuads[TOP_LEFT_QUADRANT] = new QuadTree({
-                level: _level + 1,
-                capacity: _nodeCapacity,
-                maxLevel: _maxLevel,
-                x: x,
-                y: y,
-                w: width,
-                h: height
-            });
-            _childQuads[TOP_RIGHT_QUADRANT] = new QuadTree({
-                level: _level + 1,
-                capacity: _nodeCapacity,
-                maxLevel: _maxLevel,
-                x: x + width,
-                y: y,
-                w: width,
-                h: height
-            });
-            _childQuads[BOTTOM_LEFT_QUADRANT] = new QuadTree({
-                level: _level + 1,
-                capacity: _nodeCapacity,
-                maxLevel: _maxLevel,
-                x: x,
-                y: y + height,
-                w: width,
-                h: height
-            });
-            _childQuads[BOTTOM_RIGHT_QUADRANT] = new QuadTree({
-                level: _level + 1,
-                capacity: _nodeCapacity,
-                maxLevel: _maxLevel,
-                x: x + width,
-                y: y + height,
-                w: width,
-                h: height
-            });
-        }
-
-        function _getIndex(node) {
-            var index = NO_QUADRANT;
-
-            var nodeBounds = new Bounds(node.x, node.y, node.w, node.h);
-
-            if (_bounds.getTopLeft().insideBounds(nodeBounds)) {
-                index = TOP_LEFT_QUADRANT;
-            } else if (_bounds.getTopRight().insideBounds(nodeBounds)) {
-                index = TOP_RIGHT_QUADRANT;
-            } else if (_bounds.getBottomLeft().insideBounds(nodeBounds)) {
-                index = BOTTOM_LEFT_QUADRANT;
-            } else if (_bounds.getBottomRight().insideBounds(nodeBounds)) {
-                index = BOTTOM_RIGHT_QUADRANT;
-            }
-
-            return index;
-        }
-
-        this._insert = function(node) {
+        function _insert(node, treeRoot) {
             var index;
 
-            if (_hasChildren()) {
-                index = _getIndex(node);
+            if (treeRoot.hasChildren()) {
+                index = treeRoot.getIndex(node);
                 if (index !== NO_QUADRANT) {
-                    _childQuads[index]._insert(node);
+                    _insert(node, treeRoot.childQuads[index]);
                 }
                 return;
             }
 
-            _nodes.push(node);
+            treeRoot.nodes.push(node);
 
-            if (_nodes.length > _nodeCapacity && _level < _maxLevel) {
-                if (!_hasChildren()) {
-                    _split();
+            if (treeRoot.nodes.length > _nodeCapacity && treeRoot.level < _maxLevel) {
+                if (!treeRoot.hasChildren()) {
+                    treeRoot.split();
                 }
-                _nodes.forEach(function(node) {
-                    index = _getIndex(node);
+                treeRoot.nodes.forEach(function(node) {
+                    index = treeRoot.getIndex(node);
                     if (index !== NO_QUADRANT) {
-                        _childQuads[index]._insert(node);
+                        _insert(node, treeRoot.childQuads[index]);
                     }
                 });
-                _nodes = [];
+                treeRoot.nodes = [];
+            }
+        }
+
+        function _retrieve(node, treeRoot) {
+            var result = treeRoot.nodes;
+
+            if (treeRoot.hasChildren()) {
+                var index = treeRoot.getIndex(node);
+
+                if (index !== NO_QUADRANT) {
+                    result = result.concat(_retrieve(node, treeRoot.childQuads[index]));
+                } else {
+                    // TODO: This needs to be improved for large search areas
+                    treeRoot.childQuads.forEach(function(childQuad) {
+                        result = result.concat(_retrieve(node, childQuad));
+                    });
+                }
+            }
+            return result;
+        }
+
+        function _toArray(treeRoot) {
+            var result = [{
+                nodes: treeRoot.nodes,
+                bounds: {
+                    x: treeRoot.bounds.getLeft(),
+                    y: treeRoot.bounds.getTop(),
+                    width: treeRoot.bounds.getWidth(),
+                    height: treeRoot.bounds.getHeight()
+                },
+                level: treeRoot.level
+            }];
+
+            treeRoot.childQuads.forEach(function(childQuad) {
+                result = result.concat(_toArray(childQuad));
+            });
+
+            return result;
+        }
+
+        // Public
+
+        this.getTree = function() {
+            return _root;
+        };
+
+        this.retrieve = function(node) {
+            node = extend(defaultNode, node);
+            if (_root.bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+                return _retrieve(node, _root);
             }
         };
 
         this.insert = function(node) {
             node = extend(defaultNode, node);
-            if (_bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
-                this._insert(node);
-            }
-        };
-
-        this.getBounds = function() {
-            return _bounds;
-        };
-
-        this.remove = function(node) {
-            // TODO: Add removal
-        };
-
-        this.clear = function() {
-            _nodes = [];
-            _childQuads.forEach(function(childQuad) {
-                childQuad.clear();
-            });
-            _childQuads = [];
-        };
-
-        this._retrieve = function(node) {
-            var result = _nodes;
-
-            if (_hasChildren()) {
-                var index = _getIndex(node);
-
-                if (index !== NO_QUADRANT) {
-                    result = result.concat(_childQuads[index]._retrieve(node));
-                } else {
-                    // TODO: This needs to be improved for large search areas
-                    _childQuads.forEach(function(childQuad) {
-                        result = result.concat(childQuad._retrieve(node));
-                    });
-                }
-            }
-            return result;
-        };
-
-        this.retrieve = function(node) {
-            node = extend(defaultNode, node);
-            if (_bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
-                this._retrieve(node);
+            if (_root.bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+                _insert(node, _root);
             }
         };
 
         this.toArray = function() {
-            var result = [{
-                nodes: _nodes,
-                bounds: {
-                    x: _bounds.getLeft(),
-                    y: _bounds.getTop(),
-                    width: _bounds.getWidth(),
-                    height: _bounds.getHeight()
-                },
-                level: _level
-            }];
-            _childQuads.forEach(function(childQuad) {
-                result = result.concat(childQuad.toArray());
-            });
-            return result;
+            return _toArray(_root);
         };
 
     }
