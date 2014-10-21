@@ -235,22 +235,29 @@
             _childQuads = [];
         };
 
-        this.retrieve = function(node) {
+        this._retrieve = function(node) {
             var result = _nodes;
 
             if (_hasChildren()) {
                 var index = _getIndex(node);
 
                 if (index !== NO_QUADRANT) {
-                    result = result.concat(_childQuads[index].retrieve(node));
+                    result = result.concat(_childQuads[index]._retrieve(node));
                 } else {
                     // TODO: This needs to be improved for large search areas
                     _childQuads.forEach(function(childQuad) {
-                        result = result.concat(childQuad.retrieve(node));
+                        result = result.concat(childQuad._retrieve(node));
                     });
                 }
             }
             return result;
+        };
+
+        this.retrieve = function(node) {
+            node = extend(defaultNode, node);
+            if (_bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+                this._retrieve(node);
+            }
         };
 
         this.toArray = function() {
