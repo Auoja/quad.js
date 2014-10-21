@@ -20,8 +20,6 @@ function startDemo() {
     ctx.lineWidth = 0.5;
 
     var q = Quad.create({
-        x: 0,
-        y: 0,
         w: canvas.width,
         h: canvas.height,
         capacity: 1
@@ -52,9 +50,7 @@ function startDemo() {
         } else {
             q.insert({
                 x: endX,
-                y: endY,
-                w: 0,
-                h: 0
+                y: endY
             });
         }
 
@@ -79,7 +75,7 @@ function startDemo() {
         qArray.forEach(function(item) {
             ctx.beginPath();
             ctx.strokeStyle = "black";
-            ctx.rect(item.bBox.getLeft(), item.bBox.getTop(), item.bBox.getWidth(), item.bBox.getHeight());
+            ctx.rect(item.bounds.x, item.bounds.y, item.bounds.width, item.bounds.height);
             ctx.closePath();
             ctx.stroke();
         });

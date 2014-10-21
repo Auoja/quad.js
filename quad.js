@@ -1,11 +1,17 @@
 (function(exports) {
 
+    var NO_QUADRANT = -1;
+    var TOP_LEFT_QUADRANT = 0;
+    var TOP_RIGHT_QUADRANT = 1;
+    var BOTTOM_LEFT_QUADRANT = 2;
+    var BOTTOM_RIGHT_QUADRANT = 3;
+
     var defaultSettings = {
         x: 0,
         y: 0,
         w: 512,
         h: 512,
-        maxLevel: 10,
+        maxLevel: 8,
         capacity: 5,
         level: 0
     };
@@ -45,13 +51,6 @@
         this._halfHeight = Math.floor(this._height / 2);
     }
 
-    Bounds.prototype.getCenter = function() {
-        return {
-            centerX: this._l + this._halfWidth,
-            centerY: this._t + this._halfHeight
-        };
-    };
-
     Bounds.prototype.insideBounds = function(rect) {
         if (this.getTop() <= rect.getTop() &&
             this.getLeft() <= rect.getLeft() &&
@@ -63,29 +62,19 @@
         return false;
     };
 
-    Bounds.prototype.canBeSplit = function () {
-        if (this._halfWidth < 1 || this._halfHeight < 1) {
-            throw Error("Quads are to small. Try lowering quadtree max level.")
-        }
-    };
-
     Bounds.prototype.getTopLeft = function() {
-        this.canBeSplit();
         return new Bounds(this._l, this._t, this._halfWidth, this._halfHeight);
     };
 
     Bounds.prototype.getTopRight = function() {
-        this.canBeSplit();
         return new Bounds(this._l + this._halfWidth, this._t, this._halfWidth, this._halfHeight);
     };
 
     Bounds.prototype.getBottomLeft = function() {
-        this.canBeSplit();
         return new Bounds(this._l, this._t + this._halfHeight, this._halfWidth, this._halfHeight);
     };
 
     Bounds.prototype.getBottomRight = function() {
-        this.canBeSplit();
         return new Bounds(this._l + this._halfWidth, this._t + this._halfHeight, this._halfWidth, this._halfHeight);
     };
 
@@ -123,24 +112,24 @@
 
 
     function QuadTree(settings) {
-
         var _level = settings.level;
         var _nodeCapacity = settings.capacity;
         var _maxLevel = settings.maxLevel;
-        var _objects = [];
         var _nodes = [];
+        var _childQuads = [];
         var _bounds = new Bounds(settings.x, settings.y, settings.w, settings.h);
-        var _hasChildren = false;
 
+        function _hasChildren() {
+            return _childQuads.length > 0;
+        }
 
         function _split() {
-
             var x = _bounds.getLeft();
             var y = _bounds.getTop();
             var width = _bounds.getHalfWidth();
             var height = _bounds.getHalfHeight();
 
-            _nodes[0] = new QuadTree({
+            _childQuads[TOP_LEFT_QUADRANT] = new QuadTree({
                 level: _level + 1,
                 capacity: _nodeCapacity,
                 maxLevel: _maxLevel,
@@ -149,7 +138,7 @@
                 w: width,
                 h: height
             });
-            _nodes[1] = new QuadTree({
+            _childQuads[TOP_RIGHT_QUADRANT] = new QuadTree({
                 level: _level + 1,
                 capacity: _nodeCapacity,
                 maxLevel: _maxLevel,
@@ -158,7 +147,7 @@
                 w: width,
                 h: height
             });
-            _nodes[2] = new QuadTree({
+            _childQuads[BOTTOM_LEFT_QUADRANT] = new QuadTree({
                 level: _level + 1,
                 capacity: _nodeCapacity,
                 maxLevel: _maxLevel,
@@ -167,7 +156,7 @@
                 w: width,
                 h: height
             });
-            _nodes[3] = new QuadTree({
+            _childQuads[BOTTOM_RIGHT_QUADRANT] = new QuadTree({
                 level: _level + 1,
                 capacity: _nodeCapacity,
                 maxLevel: _maxLevel,
@@ -176,23 +165,21 @@
                 w: width,
                 h: height
             });
-
-            _hasChildren = true;
         }
 
         function _getIndex(node) {
-            var index = -1;
+            var index = NO_QUADRANT;
 
             var nodeBounds = new Bounds(node.x, node.y, node.w, node.h);
 
             if (_bounds.getTopLeft().insideBounds(nodeBounds)) {
-                index = 0;
+                index = TOP_LEFT_QUADRANT;
             } else if (_bounds.getTopRight().insideBounds(nodeBounds)) {
-                index = 1;
+                index = TOP_RIGHT_QUADRANT;
             } else if (_bounds.getBottomLeft().insideBounds(nodeBounds)) {
-                index = 2;
+                index = BOTTOM_LEFT_QUADRANT;
             } else if (_bounds.getBottomRight().insideBounds(nodeBounds)) {
-                index = 3;
+                index = BOTTOM_RIGHT_QUADRANT;
             }
 
             return index;
@@ -200,29 +187,28 @@
 
         this._insert = function(node) {
             var index;
-            var i = 0;
 
-            if (_hasChildren) {
+            if (_hasChildren()) {
                 index = _getIndex(node);
-                if (index !== -1) {
-                    _nodes[index]._insert(node);
+                if (index !== NO_QUADRANT) {
+                    _childQuads[index]._insert(node);
                 }
                 return;
             }
 
-            _objects.push(node);
+            _nodes.push(node);
 
-            if (_objects.length > _nodeCapacity && _level < _maxLevel) {
-                if (!_hasChildren) {
+            if (_nodes.length > _nodeCapacity && _level < _maxLevel) {
+                if (!_hasChildren()) {
                     _split();
                 }
-                _objects.forEach(function(_object) {
-                    index = _getIndex(_object);
-                    if (index !== -1) {
-                        _nodes[index]._insert(_object);
+                _nodes.forEach(function(node) {
+                    index = _getIndex(node);
+                    if (index !== NO_QUADRANT) {
+                        _childQuads[index]._insert(node);
                     }
                 });
-                _objects = [];
+                _nodes = [];
             }
         };
 
@@ -242,25 +228,25 @@
         };
 
         this.clear = function() {
-            _objects = [];
-            _nodes.forEach(function(_node) {
-                _node.clear();
-            });
             _nodes = [];
+            _childQuads.forEach(function(childQuad) {
+                childQuad.clear();
+            });
+            _childQuads = [];
         };
 
         this.retrieve = function(node) {
-            var result = _objects;
+            var result = _nodes;
 
-            if (_hasChildren) {
+            if (_hasChildren()) {
                 var index = _getIndex(node);
 
-                if (index !== -1) {
-                    result = result.concat(_nodes[index].retrieve(node));
+                if (index !== NO_QUADRANT) {
+                    result = result.concat(_childQuads[index].retrieve(node));
                 } else {
                     // TODO: This needs to be improved for large search areas
-                    _nodes.forEach(function(_node) {
-                        result = result.concat(_node.retrieve(node));
+                    _childQuads.forEach(function(childQuad) {
+                        result = result.concat(childQuad.retrieve(node));
                     });
                 }
             }
@@ -269,12 +255,17 @@
 
         this.toArray = function() {
             var result = [{
-                nodes: _objects,
-                bBox: _bounds,
+                nodes: _nodes,
+                bounds: {
+                    x: _bounds.getLeft(),
+                    y: _bounds.getTop(),
+                    width: _bounds.getWidth(),
+                    height: _bounds.getHeight()
+                },
                 level: _level
             }];
-            _nodes.forEach(function(_node) {
-                result = result.concat(_node.toArray());
+            _childQuads.forEach(function(childQuad) {
+                result = result.concat(childQuad.toArray());
             });
             return result;
         };
@@ -282,7 +273,11 @@
     }
 
     exports.create = function(settings) {
-        return new QuadTree(extend(defaultSettings, settings));
+        settings = extend(defaultSettings, settings);
+        if (settings.w / Math.pow(2, settings.maxLevel) < 1 || settings.h / Math.pow(2, settings.maxLevel) < 1) {
+            settings = defaultSettings;
+        }
+        return new QuadTree(settings);
     };
 
 
