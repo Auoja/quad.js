@@ -185,6 +185,13 @@
 
         // Private
 
+        function validateNode(node) {
+            if (_root.bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+                return true;
+            }
+            return false;
+        }
+
         function _insert(node, treeRoot) {
             var index;
 
@@ -265,14 +272,14 @@
 
         this.retrieve = function(node) {
             node = extend(defaultNode, node);
-            if (_root.bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+            if (validateNode(node)) {
                 return _retrieve(node, _root);
             }
         };
 
         this.insert = function(node) {
             node = extend(defaultNode, node);
-            if (_root.bounds.insideBounds(new Bounds(node.x, node.y, node.w, node.h))) {
+            if (validateNode(node)) {
                 _insert(node, _root);
             }
         };
