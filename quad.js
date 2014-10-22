@@ -249,6 +249,14 @@
             return result;
         }
 
+        function _clear(treeRoot) {
+            treeRoot.nodes = [];
+            treeRoot.childQuads.forEach(function(childQuad) {
+                _clear(childQuad);
+            });
+            treeRoot.childQuads = [];
+        }
+
         // Public
 
         this.getTree = function() {
@@ -269,8 +277,16 @@
             }
         };
 
+        this.remove = function(node) {
+            // TODO: Remove node from tree
+        };
+
         this.toArray = function() {
             return _toArray(_root);
+        };
+
+        this.clear = function() {
+            _clear(_root);
         };
 
     }
