@@ -9,7 +9,9 @@
   "description": "A JavaScript Quad Tree implementation",
   "private": true,
   "ignore": [
+    "**/.*",
     "node_modules",
+    "bower_components",
     "test",
     "demo"
   ]
