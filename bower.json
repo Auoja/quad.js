@@ -1,0 +1,16 @@
+{
+  "name": "quad.js",
+  "main": "quad.js",
+  "version": "0.0.1",
+  "homepage": "https://github.com/Auoja/quad.js",
+  "authors": [
+    "Anton Auoja antonauoja@gmail.com"
+  ],
+  "description": "A JavaScript Quad Tree implementation",
+  "private": true,
+  "ignore": [
+    "node_modules",
+    "test",
+    "demo"
+  ]
+}
