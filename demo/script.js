@@ -19,7 +19,7 @@ function startDemo() {
     ctx.translate(0.5, 0.5);
     ctx.lineWidth = 0.5;
 
-    var q = Quad.create({
+    var q = new Quad({
         w: canvas.width,
         h: canvas.height,
         capacity: 1
